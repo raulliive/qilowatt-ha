@@ -61,19 +61,19 @@ class SunsykInverter(BaseInverter):
     def get_energy_data(self):
         """Retrieve ENERGY data."""
         power = [
-            self.get_state_float("grid_l1_power"),
-            self.get_state_float("grid_l2_power"),
-            self.get_state_float("grid_l3_power"),
+            self.get_state_float("sensor.ss_grid_l1_power"),
+            self.get_state_float("sensor.ss_grid_l2_power"),
+            self.get_state_float("sensor.ss_grid_l3_power"),
         ]
-        today = self.get_state_float("today_energy_import")
+        today = self.get_state_float("sensor.ss_day_grid_import")
         total = 0.0  # As per payload
         voltage = [
-            self.get_state_float("grid_l1_voltage"),
-            self.get_state_float("grid_l2_voltage"),
-            self.get_state_float("grid_l3_voltage"),
+            self.get_state_float("sensor.ss_grid_l1_voltage"),
+            self.get_state_float("sensor.ss_grid_l2_voltage"),
+            self.get_state_float("sensor.ss_grid_l3_voltage"),
         ]
         current = [round(x / y, 2) for x, y in zip(power, voltage)]
-        frequency = self.get_state_float("grid_frequency")
+        frequency = self.get_state_float("sensor.ss_grid_frequency")
 
         return EnergyData(
             Power=power,
@@ -87,16 +87,16 @@ class SunsykInverter(BaseInverter):
     def get_metrics_data(self):
         """Retrieve METRICS data."""
         pv_power = [
-            self.get_state_float("pv1_power"),
-            self.get_state_float("pv2_power"),
+            self.get_state_float("sensor.ss_pv1_power"),
+            self.get_state_float("sensor.ss_pv2_power"),
         ]
         pv_voltage = [
-            self.get_state_float("pv1_voltage"),
-            self.get_state_float("pv2_voltage"),
+            self.get_state_float("sensor.ss_pv1_voltage"),
+            self.get_state_float("sensor.ss_pv1_voltage"),
         ]
         pv_current = [
-            self.get_state_float("pv1_current"),
-            self.get_state_float("pv2_current"),
+            self.get_state_float("sensor.ss_pv1_current"),
+            self.get_state_float("sensor.ss_pv2_current"),
         ]
         load_power = [
             self.get_state_float("load_l1_power"),
@@ -104,15 +104,15 @@ class SunsykInverter(BaseInverter):
             self.get_state_float("load_l3_power"),
         ]
         alarm_codes = [0, 0, 0, 0, 0, 0]  # As per payload
-        battery_soc = self.get_state_int("_battery")
+        battery_soc = self.get_state_int("sensor.ss_battery_soc")
         load_current = [0.0, 0.0, 0.0]  # As per payload
-        battery_power = [-1 * self.get_state_float("battery_power")]
-        battery_current = [-1 * self.get_state_float("battery_current")]
-        battery_voltage = [self.get_state_float("battery_voltage")]
+        battery_power = [-1 * self.get_state_float("sensor.ss_battery_power")]
+        battery_current = [-1 * self.get_state_float("sensor.ss_battery_current")]
+        battery_voltage = [self.get_state_float("sensor.ss_battery_voltage")]
         inverter_status = 2  # As per payload
-        grid_export_limit = self.get_state_float("pv_max_power")
-        battery_temperature = [self.get_state_float("battery_temperature")]
-        inverter_temperature = self.get_state_float("inverter_temperature")
+        grid_export_limit = self.get_state_float("number.ss_export_limit_power")
+        battery_temperature = [self.get_state_float("sensor.ss_battery_temperature")]
+        inverter_temperature = self.get_state_float("sensor.ss_radiator_temperature")
 
         return MetricsData(
             PvPower=pv_power,
