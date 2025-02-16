@@ -99,9 +99,9 @@ class SunsykInverter(BaseInverter):
             self.get_state_float("sensor.ss_pv2_current"),
         ]
         load_power = [
-            self.get_state_float("load_l1_power"),
-            self.get_state_float("load_l2_power"),
-            self.get_state_float("load_l3_power"),
+            self.get_state_float("sensor.ss_load_l1_power"),
+            self.get_state_float("sensor.ss_load_l2_power"),
+            self.get_state_float("sensor.ss_load_l3_power"),
         ]
         alarm_codes = [0, 0, 0, 0, 0, 0]  # As per payload
         battery_soc = self.get_state_int("sensor.ss_battery_soc")
