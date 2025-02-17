@@ -9,8 +9,8 @@ from .base_inverter import BaseInverter
 _LOGGER = logging.getLogger(__name__)
 
 
-class SunsykInverter(BaseInverter):
-    """Implementation for Sunsyk integration for Deye Investers. https://github.com/kellerza/sunsynk"""
+class SunsynkInverter(BaseInverter):
+    """Implementation for Sunsynk integration for Deye Investers. https://github.com/kellerza/sunsynk"""
 
     def __init__(self, hass: HomeAssistant, config_entry):
         super().__init__(hass, config_entry)
