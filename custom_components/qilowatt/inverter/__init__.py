@@ -8,7 +8,7 @@ INVERTER_INTEGRATIONS = {
     # "Synsynk": SynsynkInverter,
     "SolarAssistant": SolarAssistantInverter,
     "Solarman": SolarmanInverter,
-    "SunSynk": SunsynkInverter,
+    "Sunsynk": SunsynkInverter,
 }
 
 
