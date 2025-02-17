@@ -1,5 +1,6 @@
 from .solarassistant import SolarAssistantInverter
 from .solarman import SolarmanInverter
+from .sunsynk import SunsynkInverter
 
 # from .deye_synsynk import SynsynkInverter
 # from .growatt import GrowattInverter
