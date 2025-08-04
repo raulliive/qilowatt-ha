@@ -3,13 +3,13 @@ from .solarassistant import SolarAssistantInverter
 from .solarman import SolarmanInverter
 from .sofar import SofarInverter
 from .esphome import EspHomeInverter
-from .sunsynk import SunsynkInverter
+from .sunsynk import SunSynkInverter
 
 # from .deye_synsynk import SynsynkInverter
 # from .growatt import GrowattInverter
 
 INVERTER_INTEGRATIONS = {
-    "Synsynk": SynsynkInverter,
+    "SunSynk": SunSynkInverter,
     "SolarAssistant": SolarAssistantInverter,
     "Solarman": SolarmanInverter,
     "Sofar": SofarInverter,
