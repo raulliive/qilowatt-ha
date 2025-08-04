@@ -10,7 +10,7 @@ from .const import (
     CONF_INVERTER_MODEL,
     CONF_MQTT_PASSWORD,
     CONF_MQTT_USERNAME,
-    CONF_SUnSynk_PREFIX,
+    CONF_SUNSYNK_PREFIX,
     DOMAIN,
 )
 
