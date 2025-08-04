@@ -98,9 +98,10 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         for device in device_registry.devices.values():
             # ---------- identifiers first ----------
-            for domain, dev_id, *_ in device.identifiers:
-                domain_lower = (domain or "").lower()
-                dev_id_lower = (dev_id or "").lower()
+            for ident in device.identifiers:
+                # ident is a tuple of 1‑N strings; defend against short tuples
+                domain_lower = str(ident[0]).lower() if len(ident) > 0 else ""
+                dev_id_lower = str(ident[1]).lower() if len(ident) > 1 else ""
 
                 if domain_lower == "mqtt" and "sa_inverter" in dev_id_lower:
                     inverters[device.id] = {
@@ -133,10 +134,11 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "inverter_integration": "EspHome",
                 }
 
-            # Generic Sunsynk detection: any identifier containing "sunsynk"
+            # Generic Sunsynk detection: any element of any identifier contains "sunsynk"
             if any(
-                "sunsynk" in (dom or "").lower() or "sunsynk" in (dev_id or "").lower()
-                for dom, dev_id, *_ in device.identifiers
+                "sunsynk" in str(part).lower()
+                for ident in device.identifiers
+                for part in ident
             ):
                 inverters[device.id] = {
                     "name": device.name,
