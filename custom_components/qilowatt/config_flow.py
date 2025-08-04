@@ -10,6 +10,7 @@ from .const import (
     CONF_INVERTER_MODEL,
     CONF_MQTT_PASSWORD,
     CONF_MQTT_USERNAME,
+    CONF_PREFIX,
     DOMAIN,
 )
 
@@ -91,4 +92,10 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     "name": device.name,
                     "inverter_integration": "EspHome",
                 }
+                if domain == "hass-addon-sunsynk-multi":
+                    # Sunsynk inverter integration
+                    inverters[device.id] = {
+                        "name": device.name,
+                        "inverter_integration": "Sunsynk",
+                    }
         return inverters
