@@ -1,7 +1,6 @@
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.core import callback
 from homeassistant.helpers import device_registry as dr
 
 from .const import (
@@ -21,37 +20,34 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     def __init__(self) -> None:
-        # Hold data between steps when we need an extra prompt for Sunsynk
+        # Intermediate storage between steps
         self._initial_data: dict | None = None
         self._available_inverters: dict | None = None
 
+    # ---------------------------------------------------------------------
+    # STEP: USER
+    # ---------------------------------------------------------------------
     async def async_step_user(self, user_input=None):
-        """Handle the initial step."""
+        """First step: credentials + inverter selection."""
         errors: dict[str, str] = {}
 
-        # Discover only once per flow instance
         if self._available_inverters is None:
             self._available_inverters = await self._discover_inverters()
 
         if not self._available_inverters:
-            # Abort gracefully when no compatible inverters are found
             return self.async_abort(reason="no_inverters_found")
 
         if user_input is not None:
-            selected_device_id = user_input[CONF_DEVICE_ID]
-            model = self._available_inverters[selected_device_id][
+            selected_device_id: str = user_input[CONF_DEVICE_ID]
+            model: str = self._available_inverters[selected_device_id][
                 "inverter_integration"
             ]
-
-            # Attach the detected inverter model
             user_input[CONF_INVERTER_MODEL] = model
 
-            # If Sunsynk, ask for the prefix in a follow‑up step
             if model == "Sunsynk":
                 self._initial_data = user_input
                 return await self.async_step_sunsynk_prefix()
 
-            # Otherwise finish immediately
             return self.async_create_entry(
                 title=self._available_inverters[selected_device_id]["name"],
                 data=user_input,
@@ -73,17 +69,17 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(step_id="user", data_schema=data_schema, errors=errors)
 
+    # ---------------------------------------------------------------------
+    # STEP: SUNSYNK PREFIX
+    # ---------------------------------------------------------------------
     async def async_step_sunsynk_prefix(self, user_input=None):
-        """Ask for the Sunsynk prefix when the inverter model is Sunsynk."""
+        """Second step (only for Sunsynk): ask for the prefix."""
         errors: dict[str, str] = {}
 
         if user_input is not None and self._initial_data is not None:
-            # Merge the two steps' data and finish
             final_data = {**self._initial_data, **user_input}
             selected_device_id = self._initial_data[CONF_DEVICE_ID]
             title = self._available_inverters[selected_device_id]["name"]
-
-            # Clear temp state
             self._initial_data = None
             return self.async_create_entry(title=title, data=final_data)
 
@@ -92,47 +88,56 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="sunsynk_prefix", data_schema=data_schema, errors=errors
         )
 
+    # ---------------------------------------------------------------------
+    # DISCOVERY
+    # ---------------------------------------------------------------------
     async def _discover_inverters(self):
-        """Discover compatible inverters in Home Assistant."""
+        """Return a dict of detected inverters we know how to handle."""
         device_registry = dr.async_get(self.hass)
         inverters: dict[str, dict] = {}
 
         for device in device_registry.devices.values():
-            # --- look at identifiers first ---
+            # ---------- identifiers first ----------
             for domain, dev_id, *_ in device.identifiers:
-                if domain == "mqtt" and "sa_inverter" in dev_id:
+                domain_lower = (domain or "").lower()
+                dev_id_lower = (dev_id or "").lower()
+
+                if domain_lower == "mqtt" and "sa_inverter" in dev_id_lower:
                     inverters[device.id] = {
                         "name": device.name,
                         "inverter_integration": "SolarAssistant",
                     }
-                elif domain == "solarman":
+                elif domain_lower == "solarman":
                     inverters[device.id] = {
                         "name": device.name,
                         "inverter_integration": "Solarman",
                     }
-                elif domain == "solax_modbus":
+                elif domain_lower == "solax_modbus":
                     inverters[device.id] = {
                         "name": device.name,
                         "inverter_integration": "Sofar",
                     }
-                elif domain == "huawei_solar":
+                elif domain_lower == "huawei_solar":
                     inverters[device.id] = {
                         "name": device.name,
                         "inverter_integration": "Huawei",
                     }
 
-            # --- heuristics outside the identifier loop ---
-            name = (device.name or "").lower()
-            model = (device.model or "").lower()
+            # ---------- heuristics outside identifier loop ----------
+            name_lower = (device.name or "").lower()
+            model_lower = (device.model or "").lower()
 
-            if "deye" in name and "esp32" in model:
+            if "deye" in name_lower and "esp32" in model_lower:
                 inverters[device.id] = {
                     "name": device.name,
                     "inverter_integration": "EspHome",
                 }
 
-            # If you rely on a specific domain/id for the Sunsynk add‑on, adapt this check.
-            if any(dom == "ha_addon_sunsynk_multi" for dom, *_ in device.identifiers):
+            # Generic Sunsynk detection: any identifier containing "sunsynk"
+            if any(
+                "sunsynk" in (dom or "").lower() or "sunsynk" in (dev_id or "").lower()
+                for dom, dev_id, *_ in device.identifiers
+            ):
                 inverters[device.id] = {
                     "name": device.name,
                     "inverter_integration": "Sunsynk",
