@@ -27,23 +27,31 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
-        errors = {}
+        errors: dict[str, str] = {}
+
+        # Discover only once per flow instance
         if self._available_inverters is None:
             self._available_inverters = await self._discover_inverters()
 
+        if not self._available_inverters:
+            # Abort gracefully when no compatible inverters are found
+            return self.async_abort(reason="no_inverters_found")
+
         if user_input is not None:
             selected_device_id = user_input[CONF_DEVICE_ID]
-            model = self._available_inverters[selected_device_id]["inverter_integration"]
+            model = self._available_inverters[selected_device_id][
+                "inverter_integration"
+            ]
 
             # Attach the detected inverter model
             user_input[CONF_INVERTER_MODEL] = model
 
-            # If Sunsynk, ask for the prefix in a follow-up step
+            # If Sunsynk, ask for the prefix in a follow‑up step
             if model == "Sunsynk":
                 self._initial_data = user_input
                 return await self.async_step_sunsynk_prefix()
 
-            # Otherwise we can finish immediately
+            # Otherwise finish immediately
             return self.async_create_entry(
                 title=self._available_inverters[selected_device_id]["name"],
                 data=user_input,
@@ -67,62 +75,64 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_sunsynk_prefix(self, user_input=None):
         """Ask for the Sunsynk prefix when the inverter model is Sunsynk."""
-        errors = {}
+        errors: dict[str, str] = {}
+
         if user_input is not None and self._initial_data is not None:
             # Merge the two steps' data and finish
             final_data = {**self._initial_data, **user_input}
             selected_device_id = self._initial_data[CONF_DEVICE_ID]
             title = self._available_inverters[selected_device_id]["name"]
+
             # Clear temp state
             self._initial_data = None
             return self.async_create_entry(title=title, data=final_data)
 
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_SUNSYNK_PREFIX): str,
-            }
+        data_schema = vol.Schema({vol.Required(CONF_SUNSYNK_PREFIX): str})
+        return self.async_show_form(
+            step_id="sunsynk_prefix", data_schema=data_schema, errors=errors
         )
-        return self.async_show_form(step_id="sunsynk_prefix", data_schema=data_schema, errors=errors)
 
     async def _discover_inverters(self):
-        """Discover inverters in Home Assistant."""
+        """Discover compatible inverters in Home Assistant."""
         device_registry = dr.async_get(self.hass)
-        inverters = {}
+        inverters: dict[str, dict] = {}
 
         for device in device_registry.devices.values():
-            for identifier in device.identifiers:
-                domain, device_id, *_ = identifier
-                if domain == "mqtt":
-                    # Solar Assistant inverter
-                    if "sa_inverter" in device_id:
-                        inverters[device.id] = {
-                            "name": device.name,
-                            "inverter_integration": "SolarAssistant",
-                        }
-                if domain == "solarman":
+            # --- look at identifiers first ---
+            for domain, dev_id, *_ in device.identifiers:
+                if domain == "mqtt" and "sa_inverter" in dev_id:
+                    inverters[device.id] = {
+                        "name": device.name,
+                        "inverter_integration": "SolarAssistant",
+                    }
+                elif domain == "solarman":
                     inverters[device.id] = {
                         "name": device.name,
                         "inverter_integration": "Solarman",
                     }
-                if domain == "solax_modbus":
+                elif domain == "solax_modbus":
                     inverters[device.id] = {
                         "name": device.name,
                         "inverter_integration": "Sofar",
                     }
-                if domain == "huawei_solar":
+                elif domain == "huawei_solar":
                     inverters[device.id] = {
                         "name": device.name,
                         "inverter_integration": "Huawei",
                     }
 
-            # Heuristics outside the identifier loop
-            if "Deye" in (device.name or "") and "esp32" in (device.model or ""):
+            # --- heuristics outside the identifier loop ---
+            name = (device.name or "").lower()
+            model = (device.model or "").lower()
+
+            if "deye" in name and "esp32" in model:
                 inverters[device.id] = {
                     "name": device.name,
                     "inverter_integration": "EspHome",
                 }
-            # If you rely on a specific domain/id for the Sunsynk add-on, adapt this check:
-            if any(d == "hass-addon-sunsynk-multi" for d, *_ in device.identifiers):
+
+            # If you rely on a specific domain/id for the Sunsynk add‑on, adapt this check.
+            if any(dom == "hass-addon-sunsynk-multi" for dom, *_ in device.identifiers):
                 inverters[device.id] = {
                     "name": device.name,
                     "inverter_integration": "Sunsynk",
