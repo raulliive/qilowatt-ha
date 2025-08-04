@@ -132,7 +132,7 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
 
             # If you rely on a specific domain/id for the Sunsynk add‑on, adapt this check.
-            if any(dom == "hass-addon-sunsynk-multi" for dom, *_ in device.identifiers):
+            if any(dom == "ha_addon_sunsynk_multi" for dom, *_ in device.identifiers):
                 inverters[device.id] = {
                     "name": device.name,
                     "inverter_integration": "Sunsynk",
