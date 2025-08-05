@@ -65,9 +65,16 @@ class SunsynkInverter(BaseInverter):
     # ------------------------------------------------------------------
     # lookup helpers
     # ------------------------------------------------------------------
-    def _eid(self, suffix: str, domain: str | None = None) -> str:
+        def _eid(self, suffix: str, domain: str | None = None) -> str:
+        """Return a full entity‑id string.
+
+        * If *domain* is ``None`` we assume the normal sensor domain and prepend
+          ``sensor.`` automatically, so callers only specify the *suffix*.
+        * If *domain* is given (e.g. "number") we honour it.
+        """
         body = f"{self.prefix}{suffix}" if self.prefix.endswith("_") else f"{self.prefix}_{suffix}"
-        full = f"{domain}.{body}" if domain else body
+        domain = domain or "sensor"  # default domain
+        full = f"{domain}.{body}"
         _LOGGER.debug("_eid: suffix='%s', domain=%s → '%s'", suffix, domain, full)
         return full
 
