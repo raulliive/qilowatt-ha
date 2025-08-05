@@ -65,7 +65,7 @@ class SunsynkInverter(BaseInverter):
     # ------------------------------------------------------------------
     # lookup helpers
     # ------------------------------------------------------------------
-        def _eid(self, suffix: str, domain: str | None = None) -> str:
+    def _eid(self, suffix: str, domain: str | None = None) -> str:
         """Return a full entity‑id string.
 
         * If *domain* is ``None`` we assume the normal sensor domain and prepend
@@ -156,8 +156,8 @@ class SunsynkInverter(BaseInverter):
         ]
         battery_soc = self.get_state_int("battery_soc")
         raw_batt_power = self.get_state_float("battery_power")
-        battery_power = [-abs(raw_batt_power)]
-        battery_current = [-abs(self.get_state_float("battery_current"))]
+        battery_power = [abs(raw_batt_power)]
+        battery_current = [abs(self.get_state_float("battery_current"))]
         battery_voltage = [self.get_state_float("battery_voltage")]
         grid_export_limit = self.get_state_float("export_limit_power", domain="number")
         battery_temperature = [self.get_state_float("battery_temperature")]
