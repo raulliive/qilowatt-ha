@@ -1,5 +1,4 @@
 import logging
-import time
 from typing import Iterable
 
 from homeassistant.core import HomeAssistant, State
@@ -13,13 +12,13 @@ _LOGGER = logging.getLogger(__name__)
 
 # Domains we accept values from
 _ALLOWED_DOMAINS: tuple[str, ...] = ("sensor.", "number.")
-_CACHE_TTL = 30  # seconds
 
 
 class SunsynkInverter(BaseInverter):
     """Read Sunsynk‑MQTT style sensors and expose them to Qilowatt.
 
-    Now with *verbose, step‑by‑step* DEBUG logging – enable via:
+    Caching has been **removed** – every lookup pulls the latest entity list so
+    newly‑created sensors are available immediately. Enable verbose logs with:
 
     ```yaml
     logger:
@@ -38,29 +37,12 @@ class SunsynkInverter(BaseInverter):
         self.prefix: str = (config_entry.data.get(CONF_SUNSYNK_PREFIX) or "ss").strip() or "ss"
 
         self.entity_registry = er.async_get(hass)
-        self.inverter_entities: set[str] = set()
-        self._cache_ts: float = 0.0
-        self._refresh_entity_cache(force=True)
 
         _LOGGER.debug(
-            "SunsynkInverter initialised (device_id=%s, prefix='%s', %d entities)",
+            "SunsynkInverter initialised (device_id=%s, prefix='%s')",
             self.device_id,
             self.prefix,
-            len(self.inverter_entities),
         )
-
-    # ------------------------------------------------------------------
-    # cache helpers
-    # ------------------------------------------------------------------
-    def _refresh_entity_cache(self, *, force: bool = False) -> None:
-        if not force and time.time() - self._cache_ts < _CACHE_TTL:
-            return
-        before = len(self.inverter_entities)
-        self.inverter_entities = {
-            e.entity_id for e in self.entity_registry.entities.values() if e.device_id == self.device_id
-        }
-        self._cache_ts = time.time()
-        _LOGGER.debug("Entity cache refreshed: %d → %d entities", before, len(self.inverter_entities))
 
     # ------------------------------------------------------------------
     # lookup helpers
@@ -73,27 +55,28 @@ class SunsynkInverter(BaseInverter):
         * If *domain* is given (e.g. "number") we honour it.
         """
         body = f"{self.prefix}{suffix}" if self.prefix.endswith("_") else f"{self.prefix}_{suffix}"
-        domain = domain or "sensor"  # default domain
+        domain = domain or "sensor"
         full = f"{domain}.{body}"
         _LOGGER.debug("_eid: suffix='%s', domain=%s → '%s'", suffix, domain, full)
         return full
 
     def _lookup_state(self, suffix_or_full: str) -> State | None:
-        self._refresh_entity_cache()
-
-        # Full id path – shortcut
+        """Return latest state for *suffix_or_full* (no caching)."""
+        # Full ID – direct lookup
         if "." in suffix_or_full:
             st = self.hass.states.get(suffix_or_full)
-            _LOGGER.debug("Lookup(full): id='%s' → %s", suffix_or_full, st.state if st else "None")
+            _LOGGER.debug("Lookup(full): %s → %s", suffix_or_full, st.state if st else "None")
             return st if st and st.entity_id.startswith(_ALLOWED_DOMAINS) else None
 
-        # Suffix path
-        for eid in self.inverter_entities:
-            if not eid.startswith(_ALLOWED_DOMAINS):
+        # Suffix search – enumerate device's entities every time
+        for ent in self.entity_registry.entities.values():
+            if ent.device_id != self.device_id:
                 continue
-            if eid.endswith(suffix_or_full):
-                st = self.hass.states.get(eid)
-                _LOGGER.debug("Lookup(suffix): '%s' matched '%s' → %s", suffix_or_full, eid, st.state)
+            if not ent.entity_id.startswith(_ALLOWED_DOMAINS):
+                continue
+            if ent.entity_id.endswith(suffix_or_full):
+                st = self.hass.states.get(ent.entity_id)
+                _LOGGER.debug("Lookup(suffix): '%s' matched '%s' → %s", suffix_or_full, ent.entity_id, st.state)
                 return st
         _LOGGER.debug("Lookup(suffix): '%s' not found", suffix_or_full)
         return None
@@ -120,7 +103,7 @@ class SunsynkInverter(BaseInverter):
         return value
 
     # ------------------------------------------------------------------
-    # data builders
+    # data builders (unchanged)
     # ------------------------------------------------------------------
     def get_energy_data(self) -> EnergyData:
         _LOGGER.debug("Building EnergyData …")
@@ -140,7 +123,14 @@ class SunsynkInverter(BaseInverter):
         today = self.get_state_float("day_grid_import")
         frequency = self.get_state_float("grid_frequency")
 
-        data = EnergyData(Power=power, Today=today, Total=0.0, Current=current, Voltage=voltage, Frequency=frequency)
+        data = EnergyData(
+            Power=power,
+            Today=today,
+            Total=0.0,
+            Current=current,
+            Voltage=voltage,
+            Frequency=frequency,
+        )
         _LOGGER.debug("EnergyData built: %s", data)
         return data
 
