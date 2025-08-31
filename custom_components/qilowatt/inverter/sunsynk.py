@@ -145,13 +145,8 @@ class SunsynkInverter(BaseInverter):
             self.get_state_float("load_l3_power"),
         ]
         battery_soc = self.get_state_int("battery_soc")
-## Making power and battery current to be positive or negative as needed.
-##        raw_batt_power = self.get_state_float("battery_power")
-##        battery_power = [abs(raw_batt_power)]
-##        battery_current = [abs(self.get_state_float("battery_current"))]
-        raw_batt_power = float(-1 * self.get_state_float("battery_power"))
-        battery_power = float(-1 * raw_batt_power)
-        battery_current = float(-1 * self.get_state_float("battery_current"))
+        battery_power = [-1 * self.get_state_float("battery_power")]
+        battery_current = [-1 * self.get_state_float("battery_current")]
         battery_voltage = self.get_state_float("battery_voltage")
         grid_export_limit = self.get_state_float("export_limit_power", domain="number")
         battery_temperature = [self.get_state_float("battery_temperature")]
