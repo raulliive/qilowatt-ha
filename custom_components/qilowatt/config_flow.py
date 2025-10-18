@@ -64,7 +64,7 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=data_schema, errors=errors
         )
 
-        async def async_step_sunsynk_prefix(self, user_input=None):
+    async def async_step_sunsynk_prefix(self, user_input=None):
         """Ask for SunSynk-specific prefix."""
         errors = {}
 
