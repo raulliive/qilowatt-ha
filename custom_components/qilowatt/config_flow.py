@@ -10,6 +10,7 @@ from .const import (
     CONF_INVERTER_MODEL,
     CONF_MQTT_PASSWORD,
     CONF_MQTT_USERNAME,
+    CONF_SUNSYNK_PREFIX,
     DOMAIN,
 )
 
@@ -30,6 +31,16 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input[CONF_INVERTER_MODEL] = available_inverters[
                     selected_device_id
                 ]["inverter_integration"]
+
+            # If SunSynk, go to a second step to collect the prefix
+            if available_inverters[selected_device_id]["inverter_integration"].lower() == "sunsynk":
+                # Stash data between steps
+                self._staged_input = user_input
+                self._staged_inverters = available_inverters
+                return await self.async_step_sunsynk_prefix()
+
+            # Otherwise finish immediately
+                
                 return self.async_create_entry(
                     title=f"{available_inverters[selected_device_id]['name']}",
                     data=user_input,
@@ -52,6 +63,26 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user", data_schema=data_schema, errors=errors
         )
+
+        async def async_step_sunsynk_prefix(self, user_input=None):
+        """Ask for SunSynk-specific prefix."""
+        errors = {}
+
+        if user_input is not None:
+            prefix = (user_input.get(CONF_SUNSYNK_PREFIX) or "").strip()
+            if not prefix:
+                errors[CONF_SUNSYNK_PREFIX] = "required"
+            else:
+                # Merge and finish
+                data = dict(self._staged_input)
+                data[CONF_SUNSYNK_PREFIX] = prefix
+                selected_device_id = data["device_id"]
+                title = self._staged_inverters[selected_device_id]["name"]
+                return self.async_create_entry(title=title, data=data)
+
+        schema = vol.Schema({vol.Required(CONF_SUNSYNK_PREFIX): str})
+        return self.async_show_form(step_id="sunsynk_prefix", data_schema=schema, errors=errors)
+
 
     async def _discover_inverters(self):
         """Discover inverters in Home Assistant."""
