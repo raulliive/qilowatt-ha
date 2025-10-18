@@ -7,7 +7,7 @@ from qilowatt import EnergyData, MetricsData
 
 from .base_inverter import BaseInverter
 
-CONF_SUNSYNK_PREFIX = "inverter_prefix"
+from ..const import CONF_SUNSYNK_PREFIX
 
 _LOGGER = logging.getLogger(__name__)
 
