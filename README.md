@@ -21,6 +21,7 @@ The `qilowatt-ha` integration relies on existing HA integrations to discover and
     -   Via **Solar Assistant**.
     -   Via **Solarman**: The community strongly recommends the [davidrapan/ha-solarman](https://github.com/davidrapan/ha-solarman) version for reliability.
     -   Via **ESPHome**: An [example configuration](https://github.com/qilowatt/qilowatt-ha/blob/main/examples/esphome-lilygo-tcan485.yaml) is available.
+    -   Via **Sunsynk**: [Sunsynk](https://github.com/kellerza/sunsynk) add-on support.
 -   **Sofar:**
     -   Via **SolaX Modbus**: Requires the [wills106/homeassistant-solax-modbus](https://github.com/wills106/homeassistant-solax-modbus) integration.
     -   Via **Solarman**: Works with adapted version from [davidrapan/ha-solarman](https://github.com/davidrapan/ha-solarman) (Pending pull request: https://github.com/davidrapan/ha-solarman/pull/759/files)
