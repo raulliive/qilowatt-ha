@@ -17,8 +17,7 @@ _ALLOWED_DOMAINS: tuple[str, ...] = ("sensor.", "number.")
 
 class SunsynkInverter(BaseInverter):
     """Read Sunsynk‑MQTT style sensors and expose them to Qilowatt.
-    Caching has been **removed** – every lookup pulls the latest entity list so
-    newly‑created sensors are available immediately. Enable verbose logs with:
+    Enable verbose logs with:
     ```yaml
     logger:
       logs:
@@ -33,7 +32,11 @@ class SunsynkInverter(BaseInverter):
         super().__init__(hass, config_entry)
         self.hass = hass
         self.device_id = config_entry.data["device_id"]
-        self.prefix: str = (config_entry.data.get(CONF_SUNSYNK_PREFIX) or "ss").strip() or "ss"
+        
+        val = config_entry.data.get(CONF_SUNSYNK_PREFIX)
+        if not isinstance(val, str):
+            raise ValueError("CONF_SUNSYNK_PREFIX must be a string")
+        self.prefix = val.strip()
 
         self.entity_registry = er.async_get(hass)
 
