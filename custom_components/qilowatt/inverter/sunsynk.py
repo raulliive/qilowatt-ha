@@ -10,7 +10,7 @@ from ..const import CONF_ENTITY_PREFIX
 _LOGGER = logging.getLogger(__name__)
 
 # Domains we accept values from
-_ALLOWED_DOMAINS: tuple[str, ...] = ("sensor.", "number.")
+_ALLOWED_DOMAINS: tuple[str, ...] = ("sensor", "number")
 
 
 class SunsynkInverter(BaseInverter):
