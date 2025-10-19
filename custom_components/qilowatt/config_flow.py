@@ -136,12 +136,18 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
 
       # --- SunSynk detection (identifiers only, case-insensitive) ---
-            if any(
-                    "sunsynk" in "|".join(str(part).lower() for part in ident)
-                    for ident in device.identifiers
-                ):
-                    inverters[device.id] = {
-                        "name": device.name or "Sunsynk",
-                        "inverter_integration": "Sunsynk",
-            }
+      #      if any(
+      #              "sunsynk" in "|".join(str(part).lower() for part in ident)
+      #              for ident in device.identifiers
+      #          ):
+      #              inverters[device.id] = {
+      #                  "name": device.name or "Sunsynk",
+      #                  "inverter_integration": "Sunsynk",
+      #      }
+      #              
+            if (device.name and "Deye" in device.name) and (device.model and "**" in device.model):
+                inverters[device.id] = {
+                    "name": device.name,
+                    "inverter_integration": "Sunsynk",
+                }
         return inverters
