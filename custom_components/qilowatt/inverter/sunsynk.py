@@ -14,14 +14,7 @@ _ALLOWED_DOMAINS: tuple[str, ...] = ("sensor", "number")
 
 
 class SunsynkInverter(BaseInverter):
-    """Read Sunsynk‑MQTT style sensors and expose them to Qilowatt.
-    Enable verbose logs with:
-    ```yaml
-    logger:
-      logs:
-        custom_components.qilowatt.inverter.sunsynk: debug
-    ```
-    """
+    """Read Sunsynk‑MQTT style sensors and expose them to Qilowatt."""
 
     # ------------------------------------------------------------------
     # life‑cycle
