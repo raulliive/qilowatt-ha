@@ -1,8 +1,6 @@
 import logging
-from typing import Iterable
 
 from homeassistant.core import HomeAssistant, State
-from homeassistant.helpers import entity_registry as er
 from qilowatt import EnergyData, MetricsData
 
 from .base_inverter import BaseInverter
@@ -38,7 +36,9 @@ class SunsynkInverter(BaseInverter):
             raise ValueError("CONF_ENTITY_PREFIX must be a string")
         self.prefix = val.strip()
 
-        self.entity_registry = er.async_get(hass)
+        self._entity_body_prefix = (
+            self.prefix if self.prefix.endswith("_") else f"{self.prefix}_"
+        )
 
         _LOGGER.debug(
             "SunsynkInverter initialised (device_id=%s, prefix='%s')",
@@ -55,7 +55,7 @@ class SunsynkInverter(BaseInverter):
           ``sensor.`` automatically, so callers only specify the *suffix*.
         * If *domain* is given (e.g. "number") we honour it.
         """
-        body = f"{self.prefix}{suffix}" if self.prefix.endswith("_") else f"{self.prefix}_{suffix}"
+        body = f"{self._entity_body_prefix}{suffix}"
         domain = domain or "sensor"
         full = f"{domain}.{body}"
         _LOGGER.debug("_eid: suffix='%s', domain=%s → '%s'", suffix, domain, full)
@@ -69,15 +69,19 @@ class SunsynkInverter(BaseInverter):
             _LOGGER.debug("Lookup(full): %s → %s", suffix_or_full, st.state if st else "None")
             return st if st and st.entity_id.startswith(_ALLOWED_DOMAINS) else None
 
-        # Suffix search – enumerate only the device's entities every time
-        for ent in er.async_entries_for_device(self.entity_registry, self.device_id, include_disabled_entities=False):
-            entity_id = ent.entity_id
-            if not entity_id.startswith(_ALLOWED_DOMAINS):
-                continue
-            if entity_id.endswith(suffix_or_full):
-                st = self.hass.states.get(entity_id)
-                _LOGGER.debug("Lookup(suffix): '%s' matched '%s' → %s", suffix_or_full, entity_id, st.state)
+        # Suffix lookup – construct the expected entity_id directly from prefix/domain
+        for domain_prefix in _ALLOWED_DOMAINS:
+            candidate = f"{domain_prefix}{self._entity_body_prefix}{suffix_or_full}"
+            st = self.hass.states.get(candidate)
+            if st:
+                _LOGGER.debug(
+                    "Lookup(suffix): '%s' matched '%s' → %s",
+                    suffix_or_full,
+                    candidate,
+                    st.state,
+                )
                 return st
+                
         _LOGGER.debug("Lookup(suffix): '%s' not found", suffix_or_full)
         return None
 
