@@ -69,15 +69,14 @@ class SunsynkInverter(BaseInverter):
             _LOGGER.debug("Lookup(full): %s → %s", suffix_or_full, st.state if st else "None")
             return st if st and st.entity_id.startswith(_ALLOWED_DOMAINS) else None
 
-        # Suffix search – enumerate device's entities every time
-        for ent in self.entity_registry.entities.values():
-            if ent.device_id != self.device_id:
+        # Suffix search – enumerate only the device's entities every time
+        for ent in er.async_entries_for_device(self.entity_registry, self.device_id, include_disabled_entities=False):
+            entity_id = ent.entity_id
+            if not entity_id.startswith(_ALLOWED_DOMAINS):
                 continue
-            if not ent.entity_id.startswith(_ALLOWED_DOMAINS):
-                continue
-            if ent.entity_id.endswith(suffix_or_full):
-                st = self.hass.states.get(ent.entity_id)
-                _LOGGER.debug("Lookup(suffix): '%s' matched '%s' → %s", suffix_or_full, ent.entity_id, st.state)
+            if entity_id.endswith(suffix_or_full):
+                st = self.hass.states.get(entity_id)
+                _LOGGER.debug("Lookup(suffix): '%s' matched '%s' → %s", suffix_or_full, entity_id, st.state)
                 return st
         _LOGGER.debug("Lookup(suffix): '%s' not found", suffix_or_full)
         return None
