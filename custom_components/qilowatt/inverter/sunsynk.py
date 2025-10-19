@@ -7,7 +7,7 @@ from qilowatt import EnergyData, MetricsData
 
 from .base_inverter import BaseInverter
 
-from ..const import CONF_SUNSYNK_PREFIX
+from ..const import CONF_ENTITY_PREFIX
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -33,9 +33,9 @@ class SunsynkInverter(BaseInverter):
         self.hass = hass
         self.device_id = config_entry.data["device_id"]
         
-        val = config_entry.data.get(CONF_SUNSYNK_PREFIX)
+        val = config_entry.data.get(CONF_ENTITY_PREFIX)
         if not isinstance(val, str):
-            raise ValueError("CONF_SUNSYNK_PREFIX must be a string")
+            raise ValueError("CONF_ENTITY_PREFIX must be a string")
         self.prefix = val.strip()
 
         self.entity_registry = er.async_get(hass)
