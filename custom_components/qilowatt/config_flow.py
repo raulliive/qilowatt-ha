@@ -10,7 +10,7 @@ from .const import (
     CONF_INVERTER_MODEL,
     CONF_MQTT_PASSWORD,
     CONF_MQTT_USERNAME,
-    CONF_SUNSYNK_PREFIX,
+    CONF_ENTITY_PREFIX,
     DOMAIN,
 )
 
@@ -37,7 +37,7 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 # Stash data between steps
                 self._staged_input = user_input
                 self._staged_inverters = available_inverters
-                return await self.async_step_sunsynk_prefix()
+                return await self.async_step_entity_prefix()
 
             # Otherwise finish immediately
                 
@@ -64,24 +64,24 @@ class QilowattConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user", data_schema=data_schema, errors=errors
         )
 
-    async def async_step_sunsynk_prefix(self, user_input=None):
-        """Ask for SunSynk-specific prefix."""
+    async def async_step_entity_prefix(self, user_input=None):
+        """Ask for Entity-specific prefix."""
         errors = {}
 
         if user_input is not None:
-            prefix = (user_input.get(CONF_SUNSYNK_PREFIX) or "").strip()
+            prefix = (user_input.get(CONF_ENTITY_PREFIX) or "").strip()
             if not prefix:
-                errors[CONF_SUNSYNK_PREFIX] = "required"
+                errors[CONF_ENTITY_PREFIX] = "required"
             else:
                 # Merge and finish
                 data = dict(self._staged_input)
-                data[CONF_SUNSYNK_PREFIX] = prefix
+                data[CONF_ENTITY_PREFIX] = prefix
                 selected_device_id = data["device_id"]
                 title = self._staged_inverters[selected_device_id]["name"]
                 return self.async_create_entry(title=title, data=data)
 
-        schema = vol.Schema({vol.Required(CONF_SUNSYNK_PREFIX): str})
-        return self.async_show_form(step_id="sunsynk_prefix", data_schema=schema, errors=errors)
+        schema = vol.Schema({vol.Required(CONF_ENTITY_PREFIX): str})
+        return self.async_show_form(step_id="entity_prefix", data_schema=schema, errors=errors)
 
 
     async def _discover_inverters(self):
