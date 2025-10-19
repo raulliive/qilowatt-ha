@@ -1,8 +1,6 @@
 import logging
-from typing import Iterable
 
 from homeassistant.core import HomeAssistant, State
-from homeassistant.helpers import entity_registry as er
 from qilowatt import EnergyData, MetricsData
 
 from .base_inverter import BaseInverter
@@ -38,8 +36,11 @@ class SunsynkInverter(BaseInverter):
             raise ValueError("CONF_ENTITY_PREFIX must be a string")
         self.prefix = val.strip()
 
-        self.entity_registry = er.async_get(hass)
-
+        self._entity_body_prefix = (
+            self.prefix if self.prefix.endswith("_") else f"{self.prefix}_"
+        )
+        self._entity_cache: dict[tuple[str, str], str] = {}
+        
         _LOGGER.debug(
             "SunsynkInverter initialised (device_id=%s, prefix='%s')",
             self.device_id,
@@ -55,10 +56,21 @@ class SunsynkInverter(BaseInverter):
           ``sensor.`` automatically, so callers only specify the *suffix*.
         * If *domain* is given (e.g. "number") we honour it.
         """
-        body = f"{self.prefix}{suffix}" if self.prefix.endswith("_") else f"{self.prefix}_{suffix}"
-        domain = domain or "sensor"
-        full = f"{domain}.{body}"
-        _LOGGER.debug("_eid: suffix='%s', domain=%s → '%s'", suffix, domain, full)
+        domain_name = (domain or "sensor").strip().lower()
+        if domain_name not in _ALLOWED_DOMAINS:
+            raise ValueError(
+                f"Domain '{domain_name}' is not supported. Allowed: {', '.join(_ALLOWED_DOMAINS)}"
+            )
+
+        key = (domain_name, suffix)
+        full = self._entity_cache.get(key)
+        if full is None:
+            body = f"{self._entity_body_prefix}{suffix}"
+            full = f"{domain_name}.{body}"
+            self._entity_cache[key] = full
+
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            _LOGGER.debug("_eid: suffix='%s', domain=%s → '%s'", suffix, domain_name, full)
         return full
 
     def _lookup_state(self, suffix_or_full: str) -> State | None:
@@ -66,20 +78,34 @@ class SunsynkInverter(BaseInverter):
         # Full ID – direct lookup
         if "." in suffix_or_full:
             st = self.hass.states.get(suffix_or_full)
-            _LOGGER.debug("Lookup(full): %s → %s", suffix_or_full, st.state if st else "None")
-            return st if st and st.entity_id.startswith(_ALLOWED_DOMAINS) else None
+            if _LOGGER.isEnabledFor(logging.DEBUG):
+                _LOGGER.debug(
+                    "Lookup(full): %s → %s",
+                    suffix_or_full,
+                    st.state if st else "None",
+                )
+            if not st:
+                return None
 
-        # Suffix search – enumerate device's entities every time
-        for ent in self.entity_registry.entities.values():
-            if ent.device_id != self.device_id:
-                continue
-            if not ent.entity_id.startswith(_ALLOWED_DOMAINS):
-                continue
-            if ent.entity_id.endswith(suffix_or_full):
-                st = self.hass.states.get(ent.entity_id)
-                _LOGGER.debug("Lookup(suffix): '%s' matched '%s' → %s", suffix_or_full, ent.entity_id, st.state)
+            domain_name = st.entity_id.split(".", 1)[0].lower()
+            return st if domain_name in _ALLOWED_DOMAINS else None
+
+        # Suffix lookup – construct the expected entity_id directly from prefix/domain
+        for domain_name in _ALLOWED_DOMAINS:
+            candidate = self._eid(suffix_or_full, domain_name)
+            st = self.hass.states.get(candidate)
+            if st:
+                if _LOGGER.isEnabledFor(logging.DEBUG):
+                    _LOGGER.debug(
+                        "Lookup(suffix): '%s' matched '%s' → %s",
+                        suffix_or_full,
+                        candidate,
+                        st.state,
+                    )
                 return st
-        _LOGGER.debug("Lookup(suffix): '%s' not found", suffix_or_full)
+                
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            _LOGGER.debug("Lookup(suffix): '%s' not found", suffix_or_full)
         return None
 
     def _as_number(self, state: State | None, default: float = 0.0) -> float:
